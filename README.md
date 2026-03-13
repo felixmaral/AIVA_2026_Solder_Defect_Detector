@@ -157,7 +157,7 @@ El historial del repositorio debe mantenerse limpio y estandarizado. Los mensaje
 
 ## Licencia
 
-Este software está protegido por derechos de autor (copyright). Todos los derechos están reservados a VisioTech AI. Queda estrictamente prohibida la reproducción, distribución o modificación del software sin el consentimiento expreso y por escrito de los titulares de los derechos.
+Este software está protegido por derechos de autor (copyright). Todos los derechos están reservados a JLVision. sQueda estrictamente prohibida la reproducción, distribución o modificación del software sin el consentimiento expreso y por escrito de los titulares de los derechos.
 
 ## Contacto
 
