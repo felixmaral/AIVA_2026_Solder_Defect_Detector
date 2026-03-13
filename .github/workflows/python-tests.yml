@@ -20,7 +20,6 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
-        cache: 'pip'
 
     - name: Install system dependencies
       # Requerido para el correcto funcionamiento de opencv-python en Ubuntu (headless)
@@ -29,9 +28,7 @@ jobs:
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install opencv-python numpy
-        # Si tienes un requirements.txt, descomenta la siguiente linea:
-        # pip install -r requirements_dev.txt
+        pip install -r requirements_dev.txt
 
     - name: Execute tests
       # Se inyecta la variable PYTHONPATH para emular el comportamiento del archivo .env local
