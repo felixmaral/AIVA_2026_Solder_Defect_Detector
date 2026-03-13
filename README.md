@@ -18,21 +18,98 @@ Este proyecto implementa un sistema de visión artificial diseñado para dotar d
 * **Captura de Imagen:** Cámara del robot con iluminación LED integrada.
 * **Formato de Imagen:** JPG.
 
-## Especificaciones de la Interfaz (C)
+## Especificaciones de la Arquitectura del Sistema
 
-El sistema se diseñará para ser invocado desde el software del robot (escrito en C) mediante la siguiente firma de función:
+La arquitectura separa las responsabilidades de captura de hardware, representación de datos y lógica de inferencia.
 
-`int* detectar(char *filename, char *xml_file)`
+* **Captura de hardware:** Interfaces unificadas para interactuar con los sensores (Raspberry Pi 5 Camera).
 
-Esta función procesará la imagen capturada y devolverá un puntero con las coordenadas y dimensiones de los defectos encontrados, además de generar el reporte en formato XML.
+* **Representación de datos:** Estructuras optimizadas que implementan evaluación perezosa para almacenar datos crudos y consolidar resultados.
 
-## Pruebas del Sistema
+* **Lógica de inferencia:** Aislamiento estricto del modelo predictivo para facilitar su actualización sin alterar el flujo principal.
+
+A continuación se muestra el diagrama UML:
+
+![UML_Diagram](media/SolderDefect Detection-2026-03-13-115107.svg)
+
+## Descripción de Clases
+
+### 1. Clases de Datos
+
+#### `SolderDefect`
+
+Representa la unidad atómica de una detección realizada por el modelo de visión.
+
+* **Responsabilidad:** Almacenar las coordenadas espaciales (bounding box) y el nivel de certeza de una anomalía específica en la placa.
+
+* **Atributos:** Coordenadas de la esquina superior izquierda (`top_left_x`, `top_left_y`), dimensiones de la caja (`width`, `height`) y la probabilidad asignada por el modelo (`confidence`).
+
+* **Método clave:** `to_xml_string()` para auto-serializarse en un fragmento XML.
+
+#### `PCBImage`
+
+Actúa como contenedor inteligente para los datos crudos de la imagen.
+
+* **Responsabilidad:** Encapsular el array de bytes de la imagen capturada y proporcionar acceso controlado a sus propiedades físicas. Implementa evaluación perezosa (lazy evaluation) para evitar costes computacionales de decodificación hasta que sea estrictamente necesario.
+
+* **Atributos:** Buffer de bytes (`_image_data`), ruta opcional (`_filepath`) y metadatos cacheados (`_height`, `_width`).
+
+* **Métodos clave:** `_calculate_dimensions()` (método interno de decodificación), `get_resolution()`, `get_size_bytes()`.
+
+#### `DetectionResult`
+
+Estructura de agregación que consolida el resultado completo de una inferencia.
+
+* **Responsabilidad:** Agrupar múltiples instancias de `SolderDefect` asociadas a una única `PCBImage` y gestionar la exportación final de los datos.
+
+* **Atributos:** Una lista de objetos `SolderDefect`.
+
+* **Métodos clave:** `add_defect()` para poblar la lista durante el ciclo de predicción, y `to_xml()` para generar el reporte final formateado.
+
+### 2. Clases de Interfaz y Procesamiento
+
+#### `Camera`
+
+Abstracción de la capa de hardware físico (Raspberry Pi Camera Module 3 / HQ).
+
+* **Responsabilidad:** Proveer métodos unificados para la obtención de frames, independientemente de si provienen del flujo de video en vivo o de archivos locales para depuración.
+
+* **Métodos clave:** `get_real_time_image()` (interactúa con la cámara real) y `get_image_from_file()`. Ambos métodos instancian y retornan objetos `PCBImage`.
+
+#### `Detector`
+
+Motor principal de inferencia.
+
+* **Responsabilidad:** Ejecutar el modelo predictivo sobre una imagen dada y traducir las salidas del tensor en estructuras de datos manejables.
+
+* **Método clave:** `detect(image: PCBImage)`.
+
+## Flujo de Ejecución (Inferencia)
+
+1. **Captura:** El orquestador principal (`main.py`) invoca a la instancia de `Camera` mediante `get_real_time_image()`. La cámara captura el frame y lo encapsula retornando un objeto `PCBImage`.
+
+2. **Análisis:** El orquestador pasa este objeto `PCBImage` al método `detect()` de la instancia `Detector`.
+
+3. **Procesamiento Interno:**
+
+   * El `Detector` inicializa un objeto `DetectionResult` vacío.
+
+   * El modelo decodifica la `PCBImage` y realiza la inferencia matricial.
+
+   * Por cada anomalía localizada, el `Detector` crea un objeto `SolderDefect` y lo inserta en `DetectionResult` mediante `add_defect()`.
+
+4. **Retorno:** Finalizada la inferencia, `detective()` retorna el objeto `DetectionResult` consolidado al orquestador.
+
+5. **Exportación:** El orquestador invoca `to_xml()` sobre el `DetectionResult` para obtener el string final del reporte, listo para ser registrado en log o transmitido por red.
+
+## Evaluación del Sistema
 
 El desarrollo se apoya en un dataset inicial de 116 imágenes de ejemplo. Se realizarán pruebas unitarias sobre el núcleo del algoritmo para validar:
+
 1. La correcta detección de los fallos de soldadura.
 2. La precisión de las coordenadas devueltas.
 3. El cumplimiento de los tiempos de ejecución (<10s).
-4. La minimización de FN
+4. La estimación del umbral de confianza minimizando la tasa de Falsos Negativos (Fallos de Soldadura no detectados)
 
 ## Contribución y Flujo de Trabajo
 
