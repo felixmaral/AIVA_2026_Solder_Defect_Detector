@@ -12,3 +12,9 @@ src/core/__pycache__
 
 tests/_mockup/.pytest_cache
 tests/_mockup/__pycache__
+
+.pytest_cache
+∫
+tests/__pycache__
+
+.env
