@@ -30,7 +30,7 @@ La arquitectura separa las responsabilidades de captura de hardware, representac
 
 A continuación se muestra el diagrama UML:
 
-![UML_Diagram](media/SolderDefect Detection-2026-03-13-115107.svg)
+![UML_Diagram](https://github.com/felixmaral/AIVA_2026_Solder_Defect_Detector/blob/docs/fm/%231-readme-introductorio/media/SolderDefect%20Detection-2026-03-13-115107.svg)
 
 ## Descripción de Clases
 
