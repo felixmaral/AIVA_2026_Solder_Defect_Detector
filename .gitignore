@@ -7,3 +7,5 @@ src/_mockup/__pycache__
 src/_mockup/core/__pycache__
 src/_mockup/hardware/__pycache__
 src/_mockup/vision/__pycache__
+
+src/core/__pycache__

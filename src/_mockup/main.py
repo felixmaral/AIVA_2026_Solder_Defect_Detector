@@ -13,8 +13,8 @@ def main():
         pcb_image = camera.get_real_time_image()
         print(f"Image captured: {pcb_image.get_resolution()} - {pcb_image.get_size_bytes()} bytes")
         
-        # Opcional: Visualización si hay interfaz gráfica
-        pcb_image.show()
+        # Optional
+        # pcb_image.show()
         
         detection_result = detector.detect(pcb_image)
         xml_report = detection_result.to_xml()

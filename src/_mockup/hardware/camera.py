@@ -1,20 +1,17 @@
 import os
-from ...core.pcb_image import PCBImage
+from ..core.pcb_image import PCBImage
 
 class Camera:
     """
     Hardware interface mock for the camera.
-    Simulates real-time capture by reading from a generic local file.
+    Reads from a local file to simulate real-time capture.
     """
     def __init__(self, default_feed_path: str = "media/Muestra_095.jpg"):
-        """
-        Initializes the mock camera with a default image path for real-time simulation.
-        """
         self.default_feed_path = default_feed_path
 
     def get_real_time_image(self) -> PCBImage:
         """
-        Simulates a live frame capture by reading the predefined local image.
+        Simulates a live frame capture.
         """
         if not os.path.exists(self.default_feed_path):
             raise FileNotFoundError(f"Mock feed image not found: {self.default_feed_path}")
