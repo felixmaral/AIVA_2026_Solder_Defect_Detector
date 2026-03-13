@@ -9,3 +9,6 @@ src/_mockup/hardware/__pycache__
 src/_mockup/vision/__pycache__
 
 src/core/__pycache__
+
+tests/_mockup/.pytest_cache
+tests/_mockup/__pycache__
