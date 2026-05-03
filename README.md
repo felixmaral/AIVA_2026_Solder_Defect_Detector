@@ -20,6 +20,15 @@ El sistema cuenta con tres modos de ejecución diseñados para cubrir desde la c
    - Simula los tiempos de llegada de las placas usando una distribución Gaussiana alrededor de la media definida por `--sim_time` (por defecto 5s).
    - Registra métricas de rendimiento y genera automáticamente un informe estadístico detallado (`Max/Min/Avg Processing Time`) en la carpeta `reports/stress_tests/` cuando el operador aborta la simulación (`Ctrl+C`).
 
+## Instalación Rápida
+Para automatizar la creación del entorno virtual (`.venv`) y la instalación de dependencias, se ha provisto un script de instalación.
+
+Para configurar y activar el entorno automáticamente, simplemente ejecuta:
+```bash
+source install.sh
+```
+
+
 ## Integración Programática (API)
 El motor de visión está diseñado para integrarse fácilmente en el código Python de la cadena de soldadura del robot de inspección. Solo se necesita instanciar la clase `SolderDefectDetector` una vez (para cargar el modelo en memoria y la interfaz de cámara) y procesar las imágenes sobre la marcha:
 
