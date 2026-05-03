@@ -19,7 +19,7 @@ def evaluate_model(weights_path: str, yaml_path: str) -> None:
     metrics = model.val(
         data=yaml_path,
         split='test',
-        project='/kaggle/working/',
+        project=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs'),
         name='sdd_evaluation',
         exist_ok=True
     )
@@ -28,7 +28,8 @@ def evaluate_model(weights_path: str, yaml_path: str) -> None:
 
 if __name__ == "__main__":
     # Standard output paths based on the training configuration
-    TRAINED_WEIGHTS = "/kaggle/working/sdd_grayscale_training/weights/best.pt"
-    YAML_CONFIG = "/kaggle/working/dataset_yolo_grayscale/dataset.yaml"
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    TRAINED_WEIGHTS = os.path.join(base_dir, "logs", "sdd_grayscale_training", "weights", "best.pt")
+    YAML_CONFIG = os.path.join(base_dir, "dataset_yolo_grayscale", "dataset.yaml")
     
     evaluate_model(TRAINED_WEIGHTS, YAML_CONFIG)
