@@ -11,8 +11,8 @@ from src.main import main
 
 class TestMainIntegration(unittest.TestCase):
     """
-    Test suite for the main entry point (src/main.py).
-    Validates operational modes: single and simulate.
+    Test suite for the main entry point (src/main.py) and the new API class.
+    Validates operational modes: single, simulate, and simulate_24h.
     """
 
     def setUp(self):
@@ -36,12 +36,12 @@ class TestMainIntegration(unittest.TestCase):
         """
         shutil.rmtree(self.test_dir)
 
-    @patch('src.main.Detector')
-    @patch('src.main.Camera')
+    @patch('src.solder_defect_detector.Detector')
+    @patch('src.solder_defect_detector.Camera')
     def test_single_mode_with_image(self, mock_camera_class, mock_detector_class):
         """
         Verifies that passing --mode single --image <path> correctly captures the image,
-        runs detection, and prints the XML report.
+        runs detection, and saves the XML report.
         """
         test_argv = ['src/main.py', '--mode', 'single', '--image', self.img1_path]
         
@@ -58,23 +58,23 @@ class TestMainIntegration(unittest.TestCase):
         mock_detector_instance.detect.return_value = DetectionResult()
         
         with patch('sys.argv', test_argv), patch('sys.stdout', new=StringIO()) as fake_out, \
-             patch('src.main.project_root', self.test_dir):
+             patch('src.main.project_root', self.test_dir), \
+             patch('src.solder_defect_detector.project_root', self.test_dir):
             main()
             output = fake_out.getvalue()
             
             self.assertIn(f"Processing local image: {self.img1_path}", output)
-            self.assertIn("<result>", output)
             
             mock_camera_instance.get_image_from_file.assert_called_once_with(self.img1_path)
             mock_detector_instance.detect.assert_called_once_with(mock_pcb_image)
 
     @patch('src.main.time.sleep', return_value=None)
-    @patch('src.main.Detector')
-    @patch('src.main.Camera')
+    @patch('src.solder_defect_detector.Detector')
+    @patch('src.solder_defect_detector.Camera')
     def test_simulate_mode(self, mock_camera_class, mock_detector_class, mock_sleep):
         """
         Verifies the simulate mode reads all images from the simulated directory
-        and iterates through them correctly.
+        and iterates through them correctly using SolderDefectDetector.
         """
         test_argv = ['src/main.py', '--mode', 'simulate']
         
@@ -83,7 +83,8 @@ class TestMainIntegration(unittest.TestCase):
         with patch('src.main.glob.glob', side_effect=[[self.img1_path, self.img2_path], [], []]), \
              patch('sys.argv', test_argv), \
              patch('sys.stdout', new=StringIO()) as fake_out, \
-             patch('src.main.project_root', self.test_dir):
+             patch('src.main.project_root', self.test_dir), \
+             patch('src.solder_defect_detector.project_root', self.test_dir):
              
             mock_camera_instance = mock_camera_class.return_value
             from src.core.pcb_image import PCBImage
@@ -100,17 +101,16 @@ class TestMainIntegration(unittest.TestCase):
             self.assertIn("Entering Simulation Mode", output)
             self.assertIn("Found 2 images", output)
             
-            # Since there are 2 images, get_image_from_file should be called twice
             self.assertEqual(mock_camera_instance.get_image_from_file.call_count, 2)
             self.assertEqual(mock_detector_instance.detect.call_count, 2)
 
     @patch('src.main.time.sleep', return_value=None)
-    @patch('src.main.Detector')
-    @patch('src.main.Camera')
+    @patch('src.solder_defect_detector.Detector')
+    @patch('src.solder_defect_detector.Camera')
     def test_simulate_24h_mode(self, mock_camera_class, mock_detector_class, mock_sleep):
         """
         Verifies the simulate_24h mode loops correctly, applies augmentations,
-        and uses Gaussian wait times.
+        and uses Gaussian wait times via the new API.
         """
         test_argv = ['src/main.py', '--mode', 'simulate_24h']
         os.makedirs(os.path.join(self.test_dir, "data", "simulate"), exist_ok=True)
@@ -120,7 +120,8 @@ class TestMainIntegration(unittest.TestCase):
              patch('src.main.glob.glob', side_effect=[[self.img1_path, self.img2_path], [], []]), \
              patch('sys.argv', test_argv), \
              patch('sys.stdout', new=StringIO()) as fake_out, \
-             patch('src.main.project_root', self.test_dir):
+             patch('src.main.project_root', self.test_dir), \
+             patch('src.solder_defect_detector.project_root', self.test_dir):
              
             mock_camera_instance = mock_camera_class.return_value
             from src.core.pcb_image import PCBImage

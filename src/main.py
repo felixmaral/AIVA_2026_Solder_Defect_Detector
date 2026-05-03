@@ -13,8 +13,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from src.hardware.camera import Camera
-from src.vision.detector import Detector
+from src.solder_defect_detector import SolderDefectDetector
 
 def apply_random_augmentation(pcb_image):
     """
@@ -46,60 +45,10 @@ def apply_random_augmentation(pcb_image):
             pcb_image._image_data = buffer.tobytes()
             pcb_image._decoded_image = img
 
-def process_image(camera, detector, image_path=None, pcb_image=None):
-    """
-    Executes a single detection cycle on a given image.
-    """
-    try:
-        if pcb_image is None:
-            if image_path:
-                print(f"\nProcessing local image: {image_path}")
-                pcb_image = camera.get_image_from_file(image_path)
-            else:
-                print("\nError: No image path provided.")
-                return 0.0
-
-        print(f"Image captured: {pcb_image.get_resolution()} - {pcb_image.get_size_bytes()} bytes")
-        
-        # Inicio estricto del cronómetro "desde que nos entregan la imagen"
-        proc_start = time.time()
-        
-        print("Running defect detection...")
-        detection_result = detector.detect(pcb_image)
-        xml_report = detection_result.to_xml()
-        
-        print("Inspection Completed. XML Report:")
-        print(xml_report)
-        
-        # Save XML to reports/xml
-        xml_dir = os.path.join(project_root, "reports", "xml")
-        os.makedirs(xml_dir, exist_ok=True)
-        
-        if image_path:
-            base_name = os.path.splitext(os.path.basename(image_path))[0]
-        else:
-            base_name = f"Capture_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            
-        xml_filename = os.path.join(xml_dir, f"{base_name}.xml")
-        with open(xml_filename, 'w') as f:
-            f.write(xml_report)
-        print(f"XML saved to {xml_filename}")
-        
-        # Fin del cronómetro "hasta que se entrega el xml"
-        proc_time = time.time() - proc_start
-        return proc_time
-        
-    except FileNotFoundError as e:
-        print(f"Error: {e}")
-        return 0.0
-    except Exception as e:
-        print(f"An unexpected error occurred during detection: {e}")
-        return 0.0
-
 def main():
     """
     Main execution flow for the PCB inspection system.
-    Orchestrates camera capture, detection, and XML reporting.
+    Demonstrates how to use the SolderDefectDetector API.
     """
     parser = argparse.ArgumentParser(description="PCB Solder Defect Detector")
     parser.add_argument('--mode', type=str, choices=['single', 'simulate', 'simulate_24h'], default='single',
@@ -110,18 +59,17 @@ def main():
                         help="Time in seconds between frames for 'simulate' mode. If not provided, it runs at maximum speed and calculates statistics.")
     args = parser.parse_args()
 
-    print("Initializing hardware camera interface...")
-    camera = Camera(camera_index=0)
-    
-    print("Loading YOLO detector...")
     try:
-        detector = Detector()
-    except FileNotFoundError as e:
-        print(f"Error loading model: {e}")
+        system = SolderDefectDetector()
+    except Exception as e:
+        print(f"Failed to initialize SolderDefectDetector: {e}")
         return
 
     if args.mode == 'single':
-        process_image(camera, detector, args.image)
+        if args.image:
+            system.process_from_path(args.image)
+        else:
+            system.process_live_camera()
     
     elif args.mode == 'simulate':
         simulate_dir = os.path.join(project_root, "data", "simulate")
@@ -156,7 +104,8 @@ def main():
             for img_path in image_files:
                 start_time = time.time()
                 
-                proc_time = process_image(camera, detector, image_path=img_path)
+                result = system.process_from_path(img_path)
+                proc_time = result.get('processing_time_s', 0.0)
                 if proc_time > 0:
                     processing_times.append(proc_time)
                 
@@ -228,10 +177,11 @@ def main():
                 start_time = time.time()
                 
                 print(f"\n[24H Sim] Processing augmented image from: {img_path}")
-                pcb_img = camera.get_image_from_file(img_path)
+                pcb_img = system.camera.get_image_from_file(img_path)
                 apply_random_augmentation(pcb_img)
                 
-                proc_time = process_image(camera, detector, image_path=img_path, pcb_image=pcb_img)
+                result = system.process_pcb_image(pcb_img, custom_name=f"{os.path.splitext(os.path.basename(img_path))[0]}_aug")
+                proc_time = result.get('processing_time_s', 0.0)
                 if proc_time > 0:
                     processing_times.append(proc_time)
                 

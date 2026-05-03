@@ -2,7 +2,7 @@
 
 Este proyecto implementa un sistema de visión artificial diseñado para dotar de percepción autónoma a un brazo robótico en la detección de defectos en circuitos impresos (PCB). El software identifica con precisión interrupciones de continuidad y la ausencia de puntos de soldadura en entornos de producción. Para garantizar un rendimiento óptimo en la Raspberry Pi del actuador, la lógica de visión, desarrollada originalmente en Python, se encapsula en una biblioteca nativa en C, facilitando su integración directa en el flujo de control del robot.
 
-## Modos de Ejecución
+## Modos de Ejecución para Simulación del Sistema
 
 El sistema cuenta con tres modos de ejecución diseñados para cubrir desde la captura unitaria hasta pruebas de estrés exhaustivas. Puedes seleccionarlos al ejecutar `src/main.py` utilizando el parámetro `--mode`:
 
@@ -19,6 +19,22 @@ El sistema cuenta con tres modos de ejecución diseñados para cubrir desde la c
    - Itera de forma cíclica sobre el dataset, aplicando *data augmentation* aleatorio (rotaciones, volteos) en memoria para asegurar una entrada variable y continua.
    - Simula los tiempos de llegada de las placas usando una distribución Gaussiana alrededor de la media definida por `--sim_time` (por defecto 5s).
    - Registra métricas de rendimiento y genera automáticamente un informe estadístico detallado (`Max/Min/Avg Processing Time`) en la carpeta `reports/stress_tests/` cuando el operador aborta la simulación (`Ctrl+C`).
+
+## Integración Programática (API)
+El motor de visión está diseñado para integrarse fácilmente en el código Python de la cadena de soldadura del robot de inspección. Solo se necesita instanciar la clase `SolderDefectDetector` una vez (para cargar el modelo en memoria y la interfaz de cámara) y procesar las imágenes sobre la marcha:
+
+```python
+from src.solder_defect_detector import SolderDefectDetector
+
+# Inicializa la cámara y carga el modelo en memoria
+detector = SolderDefectDetector()
+
+# Dentro del bucle del robot, cuando la placa está en la posición calibrada para el robot y toma la imagen, se ejecuta:
+resultado = detector.process_from_path("data/simulate/Muestra_017.jpg")
+
+print(f"Detectados {resultado['detection_count']} defectos en {resultado['processing_time_ms']:.2f} ms")
+print(f"Reporte XML generado en: {resultado['xml_path']}")
+```
 
 ## Objetivo
 
