@@ -36,4 +36,4 @@ jobs:
         PYTHONPATH: ${{ github.workspace }}
       run: |
         # Ejecutar explícitamente los test del código principal, omitiendo la carpeta _mockup/
-        python -m unittest -v tests.test_vision tests.test_hardware tests.test_pcb_image tests.test_solder_defect tests.test_detection_result
+        python -m unittest -v tests.test_vision tests.test_hardware tests.test_pcb_image tests.test_solder_defect tests.test_detection_result tests.test_main_integration

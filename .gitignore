@@ -14,10 +14,15 @@ tests/_mockup/.pytest_cache
 tests/_mockup/__pycache__
 
 .pytest_cache
-∫
 tests/__pycache__
 
 .env
 model_dev/logs/
 model_dev/dataset_yolo_grayscale/
 model_dev/__pycache__
+
+# Ignorar reportes de texto generados dinámicamente pero mantener los ejemplos
+reports/simulate/*.txt
+!reports/simulate/example.txt
+reports/stress_tests/*.txt
+!reports/stress_tests/example.txt
