@@ -1,0 +1,8 @@
+=== Simulation Mode Report ===
+Timestamp: 20260503_205702
+Total Uptime: 69.11 seconds
+Total Images Processed: 23
+Effective Speed: 0.33 FPS
+Average Processing Time: 60.02 ms
+Max Processing Time: 129.77 ms
+Min Processing Time: 42.04 ms

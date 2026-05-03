@@ -1,0 +1,24 @@
+<result>
+    <detection_count>3</detection_count>
+    <defect>
+        <x>2074</x>
+        <y>843</y>
+        <width>62</width>
+        <height>44</height>
+        <confidence>0.9281</confidence>
+    </defect>
+    <defect>
+        <x>492</x>
+        <y>672</y>
+        <width>61</width>
+        <height>59</height>
+        <confidence>0.8578</confidence>
+    </defect>
+    <defect>
+        <x>1503</x>
+        <y>789</y>
+        <width>51</width>
+        <height>50</height>
+        <confidence>0.8042</confidence>
+    </defect>
+</result>
