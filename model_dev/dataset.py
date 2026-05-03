@@ -59,7 +59,7 @@ def prepare_yolo_dataset(json_path: str, images_path: str, output_path: str,
         Executes image transformation and coordinate normalization per dataset split.
         """
         for img_info in subset_imgs:
-            file_name = img_info['file_name']
+            file_name = img_info.get('extra', {}).get('name', img_info['file_name'])
             img_id = img_info['id']
             img_width = float(img_info['width'])
             img_height = float(img_info['height'])

@@ -17,21 +17,22 @@ def train_model(yaml_path: str) -> None:
         epochs=100,
         imgsz=640,
         batch=16,
-        project='/kaggle/working/',
+        project=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs'),
         name='sdd_grayscale_training',
         patience=20,
         cache=True,
         workers=2,
-        exist_ok=True,
+        exist_ok=False,
         degrees=15.0,  
         fliplr=0.5,    
         flipud=0.5     
     )
 
 if __name__ == "__main__":
-    INPUT_DIR = "/kaggle/input/datasets/felixmartinezalonso/sdd-solderdefects/SDD.coco/train"
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    INPUT_DIR = os.path.join(base_dir, "datasets")
     JSON_FILE = os.path.join(INPUT_DIR, "_annotations.coco.json")
-    WORK_DIR = "/kaggle/working/dataset_yolo_grayscale"
+    WORK_DIR = os.path.join(base_dir, "dataset_yolo_grayscale")
     
     if os.path.exists(JSON_FILE):
         class_names = prepare_yolo_dataset(JSON_FILE, INPUT_DIR, WORK_DIR)
