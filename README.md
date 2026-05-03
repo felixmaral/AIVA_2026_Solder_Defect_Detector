@@ -2,6 +2,24 @@
 
 Este proyecto implementa un sistema de visión artificial diseñado para dotar de percepción autónoma a un brazo robótico en la detección de defectos en circuitos impresos (PCB). El software identifica con precisión interrupciones de continuidad y la ausencia de puntos de soldadura en entornos de producción. Para garantizar un rendimiento óptimo en la Raspberry Pi del actuador, la lógica de visión, desarrollada originalmente en Python, se encapsula en una biblioteca nativa en C, facilitando su integración directa en el flujo de control del robot.
 
+## Modos de Ejecución
+
+El sistema cuenta con tres modos de ejecución diseñados para cubrir desde la captura unitaria hasta pruebas de estrés exhaustivas. Puedes seleccionarlos al ejecutar `src/main.py` utilizando el parámetro `--mode`:
+
+1. **Modo Single (`--mode single`)**:
+   Captura y procesa una imagen específica si se le pasa el argumento `--image <ruta>`.
+
+2. **Modo Simulación (`--mode simulate`)**:
+   Procesa un lote completo de imágenes almacenadas en `data/simulate/`.
+   - Si no se especifica cadencia, se ejecuta a máxima velocidad para calcular los FPS reales del motor YOLO, generando un reporte de rendimiento en `reports/simulate/`.
+   - Si se especifica el argumento `--sim_time <segundos>`, espera el tiempo exacto indicado entre imagen e imagen, emulando la velocidad de la cadena de soldaduras.
+
+3. **Prueba de Estrés 24H (`--mode simulate_24h`)**:
+   Diseñado para pruebas de robustez infinitas sin necesidad de hardware físico real.
+   - Itera de forma cíclica sobre el dataset, aplicando *data augmentation* aleatorio (rotaciones, volteos) en memoria para asegurar una entrada variable y continua.
+   - Simula los tiempos de llegada de las placas usando una distribución Gaussiana alrededor de la media definida por `--sim_time` (por defecto 5s).
+   - Registra métricas de rendimiento y genera automáticamente un informe estadístico detallado (`Max/Min/Avg Processing Time`) en la carpeta `reports/stress_tests/` cuando el operador aborta la simulación (`Ctrl+C`).
+
 ## Objetivo
 
 * **Detección Automática:** Identificar fallos de soldadura definidos como líneas que deberían estar unidas pero carecen de soldadura.
