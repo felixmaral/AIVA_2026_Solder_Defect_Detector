@@ -1,17 +1,13 @@
-#!/bin/bash
-
-# Exit on error
+#!/usr/bin/env bash
 set -e
 
 echo "=== AIVA 2026: Solder Defect Detector Setup ==="
 
-# Check if python3 is installed
-if ! command -v python3 &> /dev/null; then
+if ! command -v python3 >/dev/null 2>&1; then
     echo "Error: python3 could not be found. Please install Python 3."
-    return 1 2>/dev/null || exit 1
+    exit 1
 fi
 
-# Check if .venv exists
 if [ ! -d ".venv" ]; then
     echo "Creating virtual environment in '.venv'..."
     python3 -m venv .venv
@@ -19,22 +15,30 @@ else
     echo "Virtual environment '.venv' already exists."
 fi
 
-# Activate the virtual environment
 echo "Activating virtual environment..."
+# shellcheck disable=SC1091
 source .venv/bin/activate
 
-# Upgrade pip
-echo "Upgrading pip..."
-pip install --upgrade pip
+echo "Using Python: $(which python)"
 
-# Install dependencies
-echo "Installing dependencies..."
-if [ -f "requirements_dev.txt" ]; then
-    pip install -r requirements_dev.txt
-else
-    echo "Error: requirements_dev.txt not found!"
-    return 1 2>/dev/null || exit 1
-fi
+echo "Upgrading pip..."
+python -m pip install --upgrade pip --no-cache-dir
+
+echo "Cleaning pip cache..."
+rm -rf ~/.cache/pip || true
+
+echo "Installing Torch CPU for Raspberry Pi..."
+python -m pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
+echo "Installing lightweight project dependencies..."
+python -m pip install --no-cache-dir numpy opencv-python pillow matplotlib psutil scipy pyyaml requests polars ultralytics-thop
+
+echo "Installing Ultralytics without auto-dependencies..."
+python -m pip install --no-cache-dir ultralytics --no-deps
+
+echo ""
+echo "Listing XML files in project:"
+find . -type f \( -iname "*.xml" -o -iname "*.XML" \) -print || true
 
 echo ""
 echo "=== Setup Complete ==="
