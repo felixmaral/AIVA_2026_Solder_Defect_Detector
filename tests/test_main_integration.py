@@ -12,7 +12,7 @@ from src.main import main
 class TestMainIntegration(unittest.TestCase):
     """
     Test suite for the main entry point (src/main.py) and the new API class.
-    Validates operational modes: single, simulate, and simulate_24h.
+    Validates operational modes: single and simulate.
     """
 
     def setUp(self):
@@ -71,50 +71,14 @@ class TestMainIntegration(unittest.TestCase):
     @patch('src.application.time.sleep', return_value=None)
     @patch('src.application.Detector')
     @patch('src.application.Camera')
-    def test_simulate_mode(self, mock_camera_class, mock_detector_class, mock_sleep):
+    def test_simulate_mode_fast(self, mock_camera_class, mock_detector_class, mock_sleep):
         """
-        Verifies the simulate mode reads all images from the simulated directory
-        and iterates through them correctly using Application.
+        Verifies the simulate mode reads images and iterates through them correctly
+        at maximum speed (no mean/deviation).
         """
         test_argv = ['src/main.py', '--mode', 'simulate']
         
         os.makedirs(os.path.join(self.test_dir, "data", "simulate"), exist_ok=True)
-        # We override the glob.glob call in main.py to return our temp images
-        with patch('src.main.glob.glob', side_effect=[[self.img1_path, self.img2_path], [], []]), \
-             patch('sys.argv', test_argv), \
-             patch('sys.stdout', new=StringIO()) as fake_out, \
-             patch('src.main.project_root', self.test_dir), \
-             patch('src.application.project_root', self.test_dir):
-             
-            mock_camera_instance = mock_camera_class.return_value
-            from src.core.pcb_image import PCBImage
-            mock_pcb_image = PCBImage(image_data=b'dummy', filepath=self.img1_path)
-            mock_camera_instance.get_image_from_file.return_value = mock_pcb_image
-            
-            mock_detector_instance = mock_detector_class.return_value
-            from src.core.detection_result import DetectionResult
-            mock_detector_instance.detect.return_value = DetectionResult()
-            
-            main()
-            output = fake_out.getvalue()
-            
-            self.assertIn("Entering Simulation Mode", output)
-            self.assertIn("Found 2 images", output)
-            
-            self.assertEqual(mock_camera_instance.get_image_from_file.call_count, 2)
-            self.assertEqual(mock_detector_instance.detect.call_count, 2)
-
-    @patch('src.application.time.sleep', return_value=None)
-    @patch('src.application.Detector')
-    @patch('src.application.Camera')
-    def test_simulate_24h_mode(self, mock_camera_class, mock_detector_class, mock_sleep):
-        """
-        Verifies the simulate_24h mode loops correctly, applies augmentations,
-        and uses Gaussian wait times via the new API.
-        """
-        test_argv = ['src/main.py', '--mode', 'simulate_24h']
-        os.makedirs(os.path.join(self.test_dir, "data", "simulate"), exist_ok=True)
-        
         # Override itertools.cycle to just return a normal iterator to avoid infinite loops
         with patch('src.main.itertools.cycle', side_effect=lambda x: iter(x)), \
              patch('src.main.glob.glob', side_effect=[[self.img1_path, self.img2_path], [], []]), \
@@ -125,7 +89,7 @@ class TestMainIntegration(unittest.TestCase):
              
             mock_camera_instance = mock_camera_class.return_value
             from src.core.pcb_image import PCBImage
-            # We must use a valid image that can be decoded by cv2 for augmentation
+            
             dummy_img = np.zeros((10, 10, 3), dtype=np.uint8)
             success, buffer = cv2.imencode('.jpg', dummy_img)
             mock_pcb_image = PCBImage(image_data=buffer.tobytes(), filepath=self.img1_path)
@@ -138,9 +102,48 @@ class TestMainIntegration(unittest.TestCase):
             main()
             output = fake_out.getvalue()
             
-            self.assertIn("Entering 24H Simulation Mode", output)
-            self.assertIn("Gaussian cadence: mu=5.0s, sigma=2.0s", output)
-            self.assertIn("[24H Sim] Processing augmented image from", output)
+            self.assertIn("Entering Simulation Mode", output)
+            self.assertIn("indefinite simulation with 2 base images", output)
+            self.assertIn("Maximum speed mode", output)
+            
+            self.assertEqual(mock_camera_instance.get_image_from_file.call_count, 2)
+            self.assertEqual(mock_detector_instance.detect.call_count, 2)
+
+    @patch('src.application.time.sleep', return_value=None)
+    @patch('src.application.Detector')
+    @patch('src.application.Camera')
+    def test_simulate_mode_with_cadence(self, mock_camera_class, mock_detector_class, mock_sleep):
+        """
+        Verifies the simulate mode with Gaussian wait times and a specific sim_time duration.
+        """
+        test_argv = ['src/main.py', '--mode', 'simulate', '--mean', '5.0', '--deviation', '2.0', '--sim_time', '0']
+        os.makedirs(os.path.join(self.test_dir, "data", "simulate"), exist_ok=True)
+        
+        with patch('src.main.itertools.cycle', side_effect=lambda x: iter(x)), \
+             patch('src.main.glob.glob', side_effect=[[self.img1_path, self.img2_path], [], []]), \
+             patch('sys.argv', test_argv), \
+             patch('sys.stdout', new=StringIO()) as fake_out, \
+             patch('src.main.project_root', self.test_dir), \
+             patch('src.application.project_root', self.test_dir):
+             
+            mock_camera_instance = mock_camera_class.return_value
+            from src.core.pcb_image import PCBImage
+            dummy_img = np.zeros((10, 10, 3), dtype=np.uint8)
+            success, buffer = cv2.imencode('.jpg', dummy_img)
+            mock_pcb_image = PCBImage(image_data=buffer.tobytes(), filepath=self.img1_path)
+            mock_camera_instance.get_image_from_file.return_value = mock_pcb_image
+            
+            mock_detector_instance = mock_detector_class.return_value
+            from src.core.detection_result import DetectionResult
+            mock_detector_instance.detect.return_value = DetectionResult()
+            
+            main()
+            output = fake_out.getvalue()
+            
+            self.assertIn("Entering Simulation Mode", output)
+            self.assertIn("Gaussian cadence: mean=5.0s, deviation=2.0s", output)
+            # Since sim_time is 0, it should exit immediately on the first iteration
+            self.assertIn("Simulation time (0.0s) reached.", output)
 
 if __name__ == '__main__':
     unittest.main()
