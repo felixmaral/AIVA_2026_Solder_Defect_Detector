@@ -30,13 +30,13 @@ source install.sh
 
 
 ## Integración Programática (API)
-El motor de visión está diseñado para integrarse fácilmente en el código Python de la cadena de soldadura del robot de inspección. Solo se necesita instanciar la clase `SolderDefectDetector` una vez (para cargar el modelo en memoria y la interfaz de cámara) y procesar las imágenes sobre la marcha:
+El motor de visión está diseñado para integrarse fácilmente en el código Python de la cadena de soldadura del robot de inspección. Solo se necesita instanciar la clase `Application` una vez (para cargar el modelo en memoria y la interfaz de cámara) y procesar las imágenes sobre la marcha:
 
 ```python
-from src.solder_defect_detector import SolderDefectDetector
+from src.application import Application
 
 # Inicializa la cámara y carga el modelo en memoria
-detector = SolderDefectDetector()
+detector = Application()
 
 # Dentro del bucle del robot, cuando la placa está en la posición calibrada para el robot y toma la imagen, se ejecuta:
 resultado = detector.process_from_path("data/simulate/Muestra_017.jpg")

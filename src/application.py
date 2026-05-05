@@ -12,7 +12,7 @@ if project_root not in sys.path:
 from src.hardware.camera import Camera
 from src.vision.detector import Detector
 
-class SolderDefectDetector:
+class Application:
     """
     Main API Facade for the PCB Solder Defect Detection System.
     Encapsulates camera hardware and the YOLO vision model to provide
@@ -32,7 +32,7 @@ class SolderDefectDetector:
             self.output_dir = os.path.join(project_root, "reports", "xml")
             
         os.makedirs(self.output_dir, exist_ok=True)
-        print("SolderDefectDetector initialized successfully.")
+        print("Application initialized successfully.")
 
     def process_from_path(self, image_path):
         """

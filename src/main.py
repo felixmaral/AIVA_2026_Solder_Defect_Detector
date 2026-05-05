@@ -16,7 +16,7 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 
-from src.solder_defect_detector import SolderDefectDetector
+from src.application import Application
 
 
 def apply_random_augmentation(pcb_image):
@@ -81,7 +81,7 @@ def print_xml_if_requested(result, print_xml):
 def main():
     """
     Main execution flow for the PCB inspection system.
-    Demonstrates how to use the SolderDefectDetector API.
+    Demonstrates how to use the Application API.
     """
     parser = argparse.ArgumentParser(description="PCB Solder Defect Detector")
     parser.add_argument('--mode', type=str, choices=['single', 'simulate', 'simulate_24h'], default='single',
@@ -98,9 +98,9 @@ def main():
 
 
     try:
-        system = SolderDefectDetector(visualize=args.visualize)
+        system = Application(visualize=args.visualize)
     except Exception as e:
-        print(f"Failed to initialize SolderDefectDetector: {e}")
+        print(f"Failed to initialize Application: {e}")
         return
 
 
