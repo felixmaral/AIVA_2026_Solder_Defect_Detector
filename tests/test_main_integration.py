@@ -36,8 +36,8 @@ class TestMainIntegration(unittest.TestCase):
         """
         shutil.rmtree(self.test_dir)
 
-    @patch('src.solder_defect_detector.Detector')
-    @patch('src.solder_defect_detector.Camera')
+    @patch('src.application.Detector')
+    @patch('src.application.Camera')
     def test_single_mode_with_image(self, mock_camera_class, mock_detector_class):
         """
         Verifies that passing --mode single --image <path> correctly captures the image,
@@ -59,7 +59,7 @@ class TestMainIntegration(unittest.TestCase):
         
         with patch('sys.argv', test_argv), patch('sys.stdout', new=StringIO()) as fake_out, \
              patch('src.main.project_root', self.test_dir), \
-             patch('src.solder_defect_detector.project_root', self.test_dir):
+             patch('src.application.project_root', self.test_dir):
             main()
             output = fake_out.getvalue()
             
@@ -68,13 +68,13 @@ class TestMainIntegration(unittest.TestCase):
             mock_camera_instance.get_image_from_file.assert_called_once_with(self.img1_path)
             mock_detector_instance.detect.assert_called_once_with(mock_pcb_image)
 
-    @patch('src.main.time.sleep', return_value=None)
-    @patch('src.solder_defect_detector.Detector')
-    @patch('src.solder_defect_detector.Camera')
+    @patch('src.application.time.sleep', return_value=None)
+    @patch('src.application.Detector')
+    @patch('src.application.Camera')
     def test_simulate_mode(self, mock_camera_class, mock_detector_class, mock_sleep):
         """
         Verifies the simulate mode reads all images from the simulated directory
-        and iterates through them correctly using SolderDefectDetector.
+        and iterates through them correctly using Application.
         """
         test_argv = ['src/main.py', '--mode', 'simulate']
         
@@ -84,7 +84,7 @@ class TestMainIntegration(unittest.TestCase):
              patch('sys.argv', test_argv), \
              patch('sys.stdout', new=StringIO()) as fake_out, \
              patch('src.main.project_root', self.test_dir), \
-             patch('src.solder_defect_detector.project_root', self.test_dir):
+             patch('src.application.project_root', self.test_dir):
              
             mock_camera_instance = mock_camera_class.return_value
             from src.core.pcb_image import PCBImage
@@ -104,9 +104,9 @@ class TestMainIntegration(unittest.TestCase):
             self.assertEqual(mock_camera_instance.get_image_from_file.call_count, 2)
             self.assertEqual(mock_detector_instance.detect.call_count, 2)
 
-    @patch('src.main.time.sleep', return_value=None)
-    @patch('src.solder_defect_detector.Detector')
-    @patch('src.solder_defect_detector.Camera')
+    @patch('src.application.time.sleep', return_value=None)
+    @patch('src.application.Detector')
+    @patch('src.application.Camera')
     def test_simulate_24h_mode(self, mock_camera_class, mock_detector_class, mock_sleep):
         """
         Verifies the simulate_24h mode loops correctly, applies augmentations,
@@ -121,7 +121,7 @@ class TestMainIntegration(unittest.TestCase):
              patch('sys.argv', test_argv), \
              patch('sys.stdout', new=StringIO()) as fake_out, \
              patch('src.main.project_root', self.test_dir), \
-             patch('src.solder_defect_detector.project_root', self.test_dir):
+             patch('src.application.project_root', self.test_dir):
              
             mock_camera_instance = mock_camera_class.return_value
             from src.core.pcb_image import PCBImage
