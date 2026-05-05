@@ -2,6 +2,7 @@ import os
 import time
 import datetime
 import sys
+import cv2
 
 # Ensure the project root is in the python path to allow absolute imports from src
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -17,9 +18,10 @@ class SolderDefectDetector:
     Encapsulates camera hardware and the YOLO vision model to provide
     a simple interface for external clients.
     """
-    def __init__(self, camera_index=0, output_dir=None):
+    def __init__(self, camera_index=0, output_dir=None, visualize=False):
         print("Initializing hardware camera interface...")
         self.camera = Camera(camera_index=camera_index)
+        self.visualize = visualize
         
         print("Loading YOLO detector...")
         self.detector = Detector()
@@ -99,9 +101,55 @@ class SolderDefectDetector:
             f.write(xml_report)
         print(f"XML saved to {xml_filename}")
         
+        if self.visualize:
+            self._render_detections(pcb_image, detection_result)
+        
         return {
             "xml_path": xml_filename,
             "processing_time_s": proc_time,
             "processing_time_ms": proc_time * 1000,
             "detection_count": len(detection_result.defects)
         }
+
+    def _render_detections(self, pcb_image, detection_result):
+        """
+        Draws bounding boxes on the PCB image and displays it.
+        The window is updated but does not block indefinitely.
+        """
+        pcb_image._calculate_dimensions()
+        img = pcb_image._decoded_image
+        if img is None:
+            return
+            
+        display_img = img.copy()
+        
+        for defect in detection_result.defects:
+            x, y, w, h = defect.top_left_x, defect.top_left_y, defect.width, defect.height
+            cv2.rectangle(display_img, (x, y), (x + w, y + h), (0, 0, 255), 2)
+            label = f"Defect: {defect.confidence:.2f}"
+            cv2.putText(display_img, label, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+            
+        try:
+            cv2.imshow("Solder Defect Detections", display_img)
+            cv2.waitKey(1)
+        except cv2.error as e:
+            print(f"Visualization error: {e}")
+
+    def wait(self, delay_s):
+        """
+        Waits for a specified amount of time. If visualization is enabled, 
+        pumps OpenCV UI events to prevent the window from freezing.
+        """
+        if self.visualize:
+            delay_ms = max(1, int(delay_s * 1000))
+            cv2.waitKey(delay_ms)
+        else:
+            time.sleep(delay_s)
+
+    def wait_for_key(self):
+        """
+        Blocks until a key is pressed in the OpenCV window (only if visualization is enabled).
+        """
+        if self.visualize:
+            cv2.waitKey(0)
+
