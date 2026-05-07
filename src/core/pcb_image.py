@@ -2,16 +2,36 @@ import cv2
 import numpy as np
 from typing import Optional
 
+
 class PCBImage:
     """
-    Holds the PCB image data and calculates its physical properties natively via OpenCV.
-    Provides functionality for visualization if a display server is available.
+    Intelligent container for raw PCB image data captured from the hardware pipeline.
+
+    This class encapsulates the raw byte payload of a captured image and exposes
+    controlled access to its physical properties (width, height). Image decoding
+    is deferred via lazy evaluation: the raw byte buffer is only decoded into a
+    NumPy matrix when a property or method explicitly requires it. This avoids
+    unnecessary computational overhead when, for example, only the file size is
+    needed without inspecting the image content.
+
+    Attributes:
+        _image_data (bytes): The raw JPEG-encoded byte payload of the image.
+        _filepath (Optional[str]): The original filesystem path, used as a display
+            label and for naming output artefacts. May be None for in-memory images.
+        _height (Optional[int]): Cached pixel height, populated on first decode.
+        _width (Optional[int]): Cached pixel width, populated on first decode.
+        _decoded_image (Optional[np.ndarray]): Cached BGR matrix, populated on
+            first decode and retained to avoid redundant decoding.
     """
-    
+
     def __init__(self, image_data: bytes, filepath: Optional[str] = None):
         """
-        Initializes the PCB image container. 
-        Decoding is deferred until explicitly requested by a property or method.
+        Initialises the PCB image container without performing any decoding.
+
+        Args:
+            image_data (bytes): Raw JPEG byte payload of the captured image.
+            filepath (Optional[str]): Original filesystem path of the image.
+                Used for display labels and output file naming. Defaults to None.
         """
         self._image_data: bytes = image_data
         self._filepath: Optional[str] = filepath
@@ -21,56 +41,79 @@ class PCBImage:
 
     def _calculate_dimensions(self) -> None:
         """
-        Decodes the raw byte string using OpenCV to extract dimensional matrices.
-        Safeguards against redundant decoding by caching the result internally.
+        Decodes the raw byte buffer into a BGR NumPy matrix and caches dimensions.
+
+        This is the single decode point for the class. After the first call, both
+        the matrix and its dimensions are cached internally, making subsequent
+        calls a no-op. If decoding fails (e.g., malformed data), dimensions are
+        set to 0 and the decoded image remains None.
         """
         if self._height is None or self._width is None:
-            # Convert raw bytes to a 1D numpy uint8 array
+            # Convert the raw byte string to a flat uint8 NumPy array
             np_arr = np.frombuffer(self._image_data, np.uint8)
-            # Decode array into a multi-dimensional BGR matrix
+            # Decode the 1-D array into a multi-dimensional BGR matrix
             img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-            
+
             if img is not None:
                 self._height, self._width = img.shape[:2]
                 self._decoded_image = img
             else:
+                # Graceful degradation: mark dimensions as invalid
                 self._height = 0
                 self._width = 0
 
     def get_resolution(self) -> str:
         """
-        Returns the native image resolution mapped as a formatted string (WxH).
+        Returns the native image resolution as a formatted string.
+
+        Returns:
+            str: Resolution in 'WxH' format (e.g., '1920x1080').
         """
         self._calculate_dimensions()
         return f"{self._width}x{self._height}"
 
     def get_height(self) -> int:
         """
-        Returns the raw pixel matrix height.
+        Returns the raw pixel height of the image matrix.
+
+        Returns:
+            int: Image height in pixels, or 0 if decoding failed.
         """
         self._calculate_dimensions()
         return self._height
 
     def get_width(self) -> int:
         """
-        Returns the raw pixel matrix width.
+        Returns the raw pixel width of the image matrix.
+
+        Returns:
+            int: Image width in pixels, or 0 if decoding failed.
         """
         self._calculate_dimensions()
         return self._width
 
     def get_size_bytes(self) -> int:
         """
-        Returns the original physical payload size of the image string in bytes.
+        Returns the size of the original compressed image payload in bytes.
+
+        Note: This reflects the size of the raw JPEG byte string, not the
+        size of the uncompressed decoded matrix.
+
+        Returns:
+            int: Size of the raw image byte payload in bytes.
         """
         return len(self._image_data)
 
     def show(self) -> None:
         """
-        Displays the image via high-level OpenCV window wrappers. 
-        Degrades gracefully by catching context exceptions when in headless setups.
+        Displays the image in an OpenCV window and waits for a keypress to close it.
+
+        Degrades gracefully in headless environments (e.g., SSH sessions or
+        CI runners) by catching the OpenCV display context exception instead of
+        crashing the process.
         """
         self._calculate_dimensions()
-        
+
         if self._decoded_image is None:
             print("Warning: Cannot display image. Invalid or empty byte data.")
             return
