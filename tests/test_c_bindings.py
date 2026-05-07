@@ -1,3 +1,25 @@
+"""
+tests/test_c_bindings.py — Unit tests for the C binding shared library.
+
+These tests exercise the public C API (``libsolder_defect.so`` / ``.dylib``)
+via Python's ``ctypes`` module. They are automatically skipped if the shared
+library has not been compiled yet, so they integrate cleanly into the standard
+``python -m unittest discover tests`` pipeline without requiring manual setup.
+
+Why ctypes instead of a pure C test runner?
+--------------------------------------------
+The C library embeds the CPython interpreter. When it is loaded via ``ctypes``
+inside an already-running Python process, the two share the **same** interpreter
+instance. This means ``unittest.mock`` patches applied in Python are immediately
+visible to the C code when it calls back into Python, making it possible to
+replace ``Camera`` and ``Detector`` with lightweight mocks without needing
+hardware or model weights.
+
+Build the library before running these tests::
+
+    make -C src/c_bindings
+    python -m unittest tests.test_c_bindings -v
+"""
 import unittest
 import os
 import ctypes
@@ -10,7 +32,13 @@ from unittest.mock import patch
 
 
 def _find_library():
-    """Locate the compiled C shared library relative to the project root."""
+    """
+    Searches for the compiled C shared library relative to the project root.
+
+    Returns:
+        str: Absolute path to the ``.so`` or ``.dylib`` file, or ``None`` if
+             the library has not been compiled yet.
+    """
     base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     for name in ("libsolder_defect.so", "libsolder_defect.dylib"):
         path = os.path.join(base, "src", "c_bindings", name)
@@ -27,7 +55,11 @@ SKIP_REASON = (
 
 
 class DetectionResultInfo(ctypes.Structure):
-    """Mirror of DetectionResultInfo from solder_defect.h."""
+    """
+    Python-side mirror of the ``DetectionResultInfo`` C struct (from ``solder_defect.h``).
+
+    Must be kept in sync with the field order and types in the header file.
+    """
     _fields_ = [
         ("xml_path",           ctypes.c_char * 512),
         ("processing_time_ms", ctypes.c_double),
@@ -39,15 +71,23 @@ class DetectionResultInfo(ctypes.Structure):
 @unittest.skipIf(LIB_PATH is None, SKIP_REASON)
 class TestCBindingsSafety(unittest.TestCase):
     """
-    Tests that the C API is safe to call even with bad inputs.
-    These tests require NO compiled model or real hardware.
+    Tests that the C API is safe to call with invalid inputs (NULL handles).
+
+    These tests require no Python mocks, model weights, or physical hardware.
+    They only verify that the C boundary conditions are handled correctly
+    (no segfaults, correct ``success=0`` return values).
     """
 
     @classmethod
     def setUpClass(cls):
+        """
+        Loads the shared library and registers function signatures once for the suite.
+
+        Registering ``argtypes`` and ``restype`` is essential for ctypes to pass
+        arguments and interpret return values correctly on all platforms.
+        """
         cls.lib = ctypes.CDLL(LIB_PATH)
 
-        # Define function signatures matching solder_defect.h
         cls.lib.application_create.restype = ctypes.c_void_p
         cls.lib.application_create.argtypes = [
             ctypes.c_int, ctypes.c_char_p, ctypes.c_int
@@ -63,41 +103,47 @@ class TestCBindingsSafety(unittest.TestCase):
 
     def test_null_handle_process_from_path_returns_failure(self):
         """
-        Passing a NULL handle to process_from_path must return success=0
-        without crashing (no segfault).
+        Verifies that passing NULL to ``process_from_path`` returns ``success=0`` without crashing.
+
+        Guards against null-pointer dereferences at the C boundary.
         """
         result = self.lib.application_process_from_path(None, b"any_path.jpg")
         self.assertEqual(result.success, 0)
 
     def test_null_handle_process_live_camera_returns_failure(self):
         """
-        Passing a NULL handle to process_live_camera must return success=0
-        without crashing.
+        Verifies that passing NULL to ``process_live_camera`` returns ``success=0`` without crashing.
         """
         result = self.lib.application_process_live_camera(None)
         self.assertEqual(result.success, 0)
 
     def test_null_handle_destroy_does_not_crash(self):
-        """application_destroy(NULL) must be a safe no-op."""
+        """
+        Verifies that ``application_destroy(NULL)`` is a documented safe no-op.
+
+        Mirrors the behaviour of POSIX ``free(NULL)``, which must not crash.
+        """
         try:
             self.lib.application_destroy(None)
         except Exception as e:
-            self.fail(f"application_destroy(NULL) raised an exception: {e}")
+            self.fail(f"application_destroy(NULL) raised an unexpected exception: {e}")
 
 
 @unittest.skipIf(LIB_PATH is None, SKIP_REASON)
 class TestCBindingsWithMocks(unittest.TestCase):
     """
-    Tests the C API end-to-end using Python mocks for Camera and Detector,
-    so no physical hardware or YOLO model weights are required.
+    End-to-end tests for the C API using Python mocks for Camera and Detector.
 
-    This works because the C library embeds the same Python interpreter
-    already running here, meaning unittest.mock patches are visible to
-    the C code when it calls into Python.
+    Because the C library and the test runner share the same CPython interpreter,
+    ``unittest.mock`` patches applied here are visible to the C code when it
+    calls back into Python, enabling full pipeline testing without hardware.
     """
 
     @classmethod
     def setUpClass(cls):
+        """
+        Loads the shared library and registers the function signatures used in this suite.
+        """
         cls.lib = ctypes.CDLL(LIB_PATH)
         cls.lib.application_create.restype = ctypes.c_void_p
         cls.lib.application_create.argtypes = [
@@ -111,14 +157,31 @@ class TestCBindingsWithMocks(unittest.TestCase):
         cls.lib.application_destroy.argtypes = [ctypes.c_void_p]
 
     def _make_mock_pcb_image(self, filepath="/fake/path.jpg"):
-        """Helper: build a real PCBImage backed by a tiny blank JPEG."""
+        """
+        Builds a valid ``PCBImage`` backed by a tiny blank JPEG payload.
+
+        Args:
+            filepath (str): Filepath label to embed in the PCBImage instance.
+
+        Returns:
+            PCBImage: A real (non-mocked) PCBImage with a decodable byte payload.
+        """
         from src.core.pcb_image import PCBImage
         dummy = np.zeros((10, 10, 3), dtype=np.uint8)
         _, buf = cv2.imencode(".jpg", dummy)
         return PCBImage(image_data=buf.tobytes(), filepath=filepath)
 
-    def _make_mock_detection_result(self, num_defects=0):
-        """Helper: build a DetectionResult with a given number of fake defects."""
+    def _make_mock_detection_result(self, num_defects: int = 0):
+        """
+        Builds a ``DetectionResult`` pre-populated with a given number of dummy defects.
+
+        Args:
+            num_defects (int): Number of ``SolderDefect`` instances to add.
+                               Defaults to 0 (clean plate).
+
+        Returns:
+            DetectionResult: Result object with ``num_defects`` dummy entries.
+        """
         from src.core.detection_result import DetectionResult
         from src.core.solder_defect import SolderDefect
         dr = DetectionResult()
@@ -127,7 +190,9 @@ class TestCBindingsWithMocks(unittest.TestCase):
         return dr
 
     def test_create_returns_valid_handle(self):
-        """application_create returns a non-NULL handle when Application loads correctly."""
+        """
+        Verifies that ``application_create`` returns a non-NULL handle when ``Application`` loads correctly.
+        """
         tmp = tempfile.mkdtemp()
         try:
             with patch("src.application.Camera"), patch("src.application.Detector"):
@@ -139,8 +204,7 @@ class TestCBindingsWithMocks(unittest.TestCase):
 
     def test_process_from_path_success_no_defects(self):
         """
-        process_from_path returns success=1 and detection_count=0
-        when the model finds no defects.
+        Verifies that a clean plate inspection returns ``success=1`` and ``detection_count=0``.
         """
         tmp = tempfile.mkdtemp()
         try:
@@ -153,9 +217,7 @@ class TestCBindingsWithMocks(unittest.TestCase):
                 MockDet.return_value.detect.return_value = mock_det
 
                 handle = self.lib.application_create(0, tmp.encode(), 0)
-                result = self.lib.application_process_from_path(
-                    handle, b"/fake/path.jpg"
-                )
+                result = self.lib.application_process_from_path(handle, b"/fake/path.jpg")
                 self.lib.application_destroy(handle)
 
             self.assertEqual(result.success, 1)
@@ -167,8 +229,7 @@ class TestCBindingsWithMocks(unittest.TestCase):
 
     def test_process_from_path_success_with_defects(self):
         """
-        process_from_path returns success=1 and detection_count=2
-        when the model detects 2 defects.
+        Verifies that a defective plate inspection returns ``success=1`` and ``detection_count=2``.
         """
         tmp = tempfile.mkdtemp()
         try:
@@ -181,9 +242,7 @@ class TestCBindingsWithMocks(unittest.TestCase):
                 MockDet.return_value.detect.return_value = mock_det
 
                 handle = self.lib.application_create(0, tmp.encode(), 0)
-                result = self.lib.application_process_from_path(
-                    handle, b"/fake/path.jpg"
-                )
+                result = self.lib.application_process_from_path(handle, b"/fake/path.jpg")
                 self.lib.application_destroy(handle)
 
             self.assertEqual(result.success, 1)
@@ -193,8 +252,10 @@ class TestCBindingsWithMocks(unittest.TestCase):
 
     def test_xml_report_is_saved_to_disk(self):
         """
-        After process_from_path, the XML file reported in xml_path must
-        actually exist on disk.
+        Verifies that the XML report referenced in ``result.xml_path`` is written to disk.
+
+        Confirms that the Python ``Application._process`` method completes the
+        full pipeline (inference + file write) when called through the C API.
         """
         tmp = tempfile.mkdtemp()
         try:
@@ -207,15 +268,13 @@ class TestCBindingsWithMocks(unittest.TestCase):
                 MockDet.return_value.detect.return_value = mock_det
 
                 handle = self.lib.application_create(0, tmp.encode(), 0)
-                result = self.lib.application_process_from_path(
-                    handle, b"/fake/path.jpg"
-                )
+                result = self.lib.application_process_from_path(handle, b"/fake/path.jpg")
                 self.lib.application_destroy(handle)
 
             xml_path = result.xml_path.decode("utf-8")
             self.assertTrue(
                 os.path.isfile(xml_path),
-                f"XML report not found at: {xml_path}"
+                f"XML report was not written to disk at: {xml_path}",
             )
         finally:
             shutil.rmtree(tmp)
