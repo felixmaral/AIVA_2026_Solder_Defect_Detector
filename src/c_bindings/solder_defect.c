@@ -4,6 +4,11 @@
 #include <stdlib.h>
 #include "solder_defect.h"
 
+/* Track whether THIS library initialized Python.
+ * If the .so is loaded from an existing Python process (e.g. via ctypes in
+ * unit tests), Python is already running and we must NOT call Py_Finalize(). */
+static int python_initialized_by_us = 0;
+
 struct ApplicationHandle {
     PyObject* pInstance;
 };
@@ -56,6 +61,7 @@ static int parse_detection_result(PyObject* pDict, DetectionResultInfo* result) 
 ApplicationHandle* application_create(int camera_index, const char* output_dir, int visualize) {
     if (!Py_IsInitialized()) {
         Py_Initialize();
+        python_initialized_by_us = 1;
     }
 
     // Add current working directory to sys.path
@@ -172,9 +178,10 @@ void application_destroy(ApplicationHandle* app) {
             Py_DECREF(app->pInstance);
         }
         free(app);
-        
-        if (Py_IsInitialized()) {
+
+        if (python_initialized_by_us && Py_IsInitialized()) {
             Py_Finalize();
+            python_initialized_by_us = 0;
         }
     }
 }
