@@ -15,6 +15,10 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        # SonarCloud requires the full git history to compute blame information
+        # and detect when issues were introduced. A shallow clone breaks this.
+        fetch-depth: 0
 
     - name: Set up Python 3.11
       uses: actions/setup-python@v5
@@ -34,10 +38,29 @@ jobs:
     - name: Compile C binding library
       run: make -C src/c_bindings
 
-    - name: Execute Python tests
+    - name: Execute Python tests with coverage
       # Se inyecta la variable PYTHONPATH para emular el comportamiento del archivo .env local
       env:
         PYTHONPATH: ${{ github.workspace }}
       run: |
-        # Ejecutar explícitamente los test del código principal, omitiendo la carpeta _mockup/
-        python -m unittest -v tests.test_vision tests.test_hardware tests.test_pcb_image tests.test_solder_defect tests.test_detection_result tests.test_main_integration tests.test_c_bindings
+        # Ejecutar los tests a través de 'coverage run' para que SonarCloud
+        # reciba datos precisos de cobertura de línea y rama por cada fichero.
+        coverage run -m unittest -v \
+          tests.test_vision \
+          tests.test_hardware \
+          tests.test_pcb_image \
+          tests.test_solder_defect \
+          tests.test_detection_result \
+          tests.test_main_integration \
+          tests.test_c_bindings
+
+        # Exportar los datos de cobertura como XML (formato que consume SonarCloud).
+        # La ruta de salida debe coincidir con 'sonar.python.coverage.reportPaths'
+        # definido en sonar-project.properties.
+        coverage xml -o coverage.xml
+
+    - name: SonarCloud — Análisis de Calidad y Seguridad
+      uses: SonarSource/sonarcloud-github-action@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
