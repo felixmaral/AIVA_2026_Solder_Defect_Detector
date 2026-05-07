@@ -22,18 +22,22 @@ jobs:
         python-version: '3.11'
 
     - name: Install system dependencies
-      # Requerido para el correcto funcionamiento de opencv-python en Ubuntu (headless)
-      run: sudo apt-get update && sudo apt-get install -y libgl1
+      # libgl1: requerido por opencv-python en Ubuntu (headless)
+      # python3-dev + gcc: requeridos para compilar el C binding
+      run: sudo apt-get update && sudo apt-get install -y libgl1 gcc python3-dev
 
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements_dev.txt
 
-    - name: Execute tests
+    - name: Compile C binding library
+      run: make -C src/c_bindings
+
+    - name: Execute Python tests
       # Se inyecta la variable PYTHONPATH para emular el comportamiento del archivo .env local
       env:
         PYTHONPATH: ${{ github.workspace }}
       run: |
         # Ejecutar explícitamente los test del código principal, omitiendo la carpeta _mockup/
-        python -m unittest -v tests.test_vision tests.test_hardware tests.test_pcb_image tests.test_solder_defect tests.test_detection_result tests.test_main_integration
+        python -m unittest -v tests.test_vision tests.test_hardware tests.test_pcb_image tests.test_solder_defect tests.test_detection_result tests.test_main_integration tests.test_c_bindings
