@@ -30,7 +30,40 @@ source install.sh
 
 
 ## Integración Programática (API)
-El motor de visión está diseñado para integrarse fácilmente en el código Python de la cadena de soldadura del robot de inspección. Solo se necesita instanciar la clase `Application` una vez (para cargar el modelo en memoria y la interfaz de cámara) y procesar las imágenes sobre la marcha:
+
+El motor de visión está diseñado para integrarse sin fricción en el software de control del brazo robótico, soportando tanto entornos Python nativos como sistemas industriales en C/C++.
+
+### Integración en C / C++ (Recomendado para Controladores)
+
+Para utilizar la API en C, se ha creado un *wrapper* nativo que encapsula toda la complejidad de Python. Solo necesitas incluir la cabecera y llamar a las funciones:
+
+```c
+#include "src/c_bindings/solder_defect.h"
+
+int main() {
+    // 1. Inicializa la cámara y el modelo (cámara 0, salida por defecto, sin GUI)
+    ApplicationHandle* app = application_create(0, NULL, 0);
+    
+    // 2. Procesa la placa capturada calibrada
+    DetectionResultInfo result = application_process_from_path(app, "data/simulate/Muestra_017.jpg");
+    
+    // 3. Evalúa el resultado directamente
+    if (result.success && result.detection_count > 0) {
+        printf("Placa defectuosa, enviando a soldadura\n");
+    } else {
+        printf("Placa buena, moviendo a la siguiente\n");
+    }
+
+    // 4. Limpia la memoria al apagar la máquina
+    application_destroy(app);
+    return 0;
+}
+```
+*Nota: Para compilar la librería `.so`, basta con entrar a `src/c_bindings/` y ejecutar `make`.*
+
+### Integración en Python
+
+Si el orquestador del robot corre directamente en Python, puedes instanciar la clase original:
 
 ```python
 from src.application import Application
@@ -38,7 +71,7 @@ from src.application import Application
 # Inicializa la cámara y carga el modelo en memoria
 detector = Application()
 
-# Dentro del bucle del robot, cuando la placa está en la posición calibrada para el robot y toma la imagen, se ejecuta:
+# Dentro del bucle del robot, evalúa la imagen:
 resultado = detector.process_from_path("data/simulate/Muestra_017.jpg")
 
 print(f"Detectados {resultado['detection_count']} defectos en {resultado['processing_time_ms']:.2f} ms")
