@@ -1,3 +1,4 @@
+"""Hardware abstraction layer for the PCB camera interface."""
 import os
 import cv2
 from ..core.pcb_image import PCBImage

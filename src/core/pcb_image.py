@@ -1,6 +1,8 @@
+"""Lazy-evaluation container for raw PCB image byte payloads."""
+from typing import Optional
+
 import cv2
 import numpy as np
-from typing import Optional
 
 
 class PCBImage:
