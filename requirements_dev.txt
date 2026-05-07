@@ -4,3 +4,4 @@
 # The end client on Raspberry Pi should use install.sh instead.
 -r requirements_prod.txt
 coverage
+pylint

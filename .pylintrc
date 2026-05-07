@@ -1,0 +1,33 @@
+# .pylintrc — Pylint configuration for AIVA_2026_Solder_Defect_Detector
+
+[MAIN]
+
+# Exclude legacy prototype and native C source directories from analysis.
+ignore=_mockup,c_bindings
+
+[MESSAGES CONTROL]
+
+# E0401 (import-error): cv2 and ultralytics are compiled C extensions;
+# pylint cannot resolve them statically but they are present at runtime.
+# E0402 (relative-beyond-top-level): the src.hardware / src.vision
+# sub-packages use project-root-relative imports that pylint misreads
+# when analysing individual files in isolation.
+disable=E0401,E0402
+
+[FORMAT]
+
+max-line-length=120
+
+[SIMILARITIES]
+
+# Minimum line count to flag a block as a duplicate.
+min-similarity-lines=10
+ignore-imports=yes
+ignore-docstrings=yes
+
+[REPORTS]
+
+# Emit the full statistical report and numeric score at the end of the run.
+output-format=text
+reports=yes
+score=yes
