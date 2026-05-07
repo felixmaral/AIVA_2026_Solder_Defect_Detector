@@ -10,6 +10,8 @@ src/_mockup/vision/__pycache__
 
 src/core/__pycache__
 
+src/vision/__pycache__
+
 tests/_mockup/.pytest_cache
 tests/_mockup/__pycache__
 

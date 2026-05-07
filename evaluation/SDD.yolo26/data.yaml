@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 1
+names: ['SolderDefect']
+
+roboflow:
+  workspace: solder-defect-detector
+  project: solder-defect-detector
+  version: dataset
+  license: Private
+  url: https://app.roboflow.com/solder-defect-detector/solder-defect-detector/dataset
