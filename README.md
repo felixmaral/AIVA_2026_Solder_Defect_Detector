@@ -160,9 +160,26 @@ Motor principal de inferencia.
 
 * **Método clave:** `detect(image: PCBImage)`.
 
+### 3. Clase Orquestadora
+
+#### `Application`
+
+Fachada principal del sistema (`src/application.py`). Actúa como el único punto de entrada para cualquier sistema externo (Python o C) que quiera utilizar el detector.
+
+* **Responsabilidad:** Coordinar el ciclo completo de inspección: inicializar el hardware de cámara (`Camera`) y el motor de inferencia (`Detector`), gestionar la imagen capturada, generar el reporte XML y, opcionalmente, mostrar los resultados visualmente. Permite al software externo del robot operar el sistema con una sola línea de código.
+
+* **Atributos:** Instancias internas de `Camera` y `Detector`, directorio de salida de los XML (`output_dir`), y flag de visualización (`visualize`).
+
+* **Métodos clave:**
+  * `process_from_path(image_path)` — procesa una imagen desde disco y retorna un diccionario con `xml_path`, `detection_count` y `processing_time_ms`.
+  * `process_live_camera()` — captura un frame de la cámara física y lo procesa.
+  * `process_pcb_image(pcb_image)` — procesa un objeto `PCBImage` ya cargado (útil para *data augmentation* o pipelines personalizados).
+  * `wait(delay_s)` — pausa entre placas manteniendo la ventana de cv2 activa si `visualize=True`.
+
 ## Flujo de Ejecución (Inferencia)
 
 1. **Captura:** El orquestador principal (`main.py`) invoca a la instancia de `Camera` mediante `get_real_time_image()`. La cámara captura el frame y lo encapsula retornando un objeto `PCBImage`.
+
 
 2. **Análisis:** El orquestador pasa este objeto `PCBImage` al método `detect()` de la instancia `Detector`.
 
