@@ -37,7 +37,7 @@ class TestCamera(unittest.TestCase):
         with self.assertRaises((ConnectionError, Exception)) as context:
             camera.get_real_time_image()
             
-        self.assertIn("camara conectada", str(context.exception))
+        self.assertIn("No camera detected", str(context.exception))
 
     def test_fallback_file_not_found(self):
         """
