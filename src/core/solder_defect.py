@@ -1,3 +1,6 @@
+"""Data class representing a single solder defect detected by the inference engine."""
+
+
 class SolderDefect:
     """
     Represents a single solder defect detected by the inference engine.

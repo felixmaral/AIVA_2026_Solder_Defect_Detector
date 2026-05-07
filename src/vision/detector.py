@@ -1,3 +1,4 @@
+"""YOLO-based inference engine for solder defect detection."""
 import os
 from pathlib import Path
 

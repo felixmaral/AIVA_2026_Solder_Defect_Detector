@@ -1,3 +1,4 @@
+"""Application façade for the PCB solder defect detection pipeline."""
 import os
 import time
 import datetime
@@ -166,7 +167,7 @@ class Application:
             base_name = f"Capture_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
         xml_filename = os.path.join(self.output_dir, f"{base_name}.xml")
-        with open(xml_filename, 'w') as f:
+        with open(xml_filename, 'w', encoding='utf-8') as f:
             f.write(xml_report)
         print(f"XML saved to {xml_filename}")
 

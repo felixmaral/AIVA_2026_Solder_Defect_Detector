@@ -40,4 +40,26 @@ jobs:
         PYTHONPATH: ${{ github.workspace }}
       run: |
         # Ejecutar explícitamente los test del código principal, omitiendo la carpeta _mockup/
-        python -m unittest -v tests.test_vision tests.test_hardware tests.test_pcb_image tests.test_solder_defect tests.test_detection_result tests.test_main_integration tests.test_c_bindings
+        python -m unittest -v \
+          tests.test_vision \
+          tests.test_hardware \
+          tests.test_pcb_image \
+          tests.test_solder_defect \
+          tests.test_detection_result \
+          tests.test_main_integration \
+          tests.test_c_bindings
+
+    - name: Code Quality Report (Pylint)
+      env:
+        PYTHONPATH: ${{ github.workspace }}
+      run: |
+        # Pylint analiza el código fuente y emite un informe completo con:
+        #   - Puntuación de calidad (0-10)
+        #   - Errores, warnings y code smells
+        #   - Complejidad ciclomática
+        #   - Duplicaciones de código
+        #   - Porcentaje de funciones documentadas
+        #
+        # --exit-zero: el paso siempre tiene éxito aunque la puntuación sea baja,
+        # de modo que el informe queda visible en los logs sin bloquear el pipeline.
+        pylint src/ --exit-zero

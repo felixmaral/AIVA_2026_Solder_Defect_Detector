@@ -88,8 +88,8 @@ def apply_random_augmentation(pcb_image) -> None:
         angle = random.uniform(-5, 5)
         h, w = img.shape[:2]
         center = (w // 2, h // 2)
-        M = cv2.getRotationMatrix2D(center, angle, 1.0)
-        img = cv2.warpAffine(img, M, (w, h), borderValue=(0, 0, 0))
+        rot_mat = cv2.getRotationMatrix2D(center, angle, 1.0)
+        img = cv2.warpAffine(img, rot_mat, (w, h), borderValue=(0, 0, 0))
 
     if choice != 'none':
         # Re-encode the transformed matrix back to a JPEG byte payload so that
@@ -200,7 +200,7 @@ def main() -> None:
     # ── Simulate mode ────────────────────────────────────────────────────────
     elif args.mode == 'simulate':
         simulate_dir = os.path.join(project_root, "data", "simulate")
-        print(f"\n--- Entering Simulation Mode ---")
+        print("\n--- Entering Simulation Mode ---")
         print(f"Reading base images from: {simulate_dir}")
 
         if not os.path.exists(simulate_dir):
@@ -298,7 +298,7 @@ def main() -> None:
             timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
             report_filename = os.path.join(report_dir, f"simulation_report_{timestamp}.txt")
 
-            with open(report_filename, 'w') as f:
+            with open(report_filename, 'w', encoding='utf-8') as f:
                 f.write("=== Simulation Mode Report ===\n")
                 f.write(f"Timestamp: {timestamp}\n")
                 f.write(f"Total Uptime: {total_elapsed:.2f} seconds\n")

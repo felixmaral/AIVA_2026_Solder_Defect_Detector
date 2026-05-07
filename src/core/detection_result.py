@@ -1,3 +1,4 @@
+"""Aggregator for solder defect detection results and XML report generation."""
 from typing import List
 from .solder_defect import SolderDefect
 
