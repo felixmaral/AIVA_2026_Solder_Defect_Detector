@@ -192,7 +192,7 @@ Camera.get_real_time_image()
 
 ### Nomenclatura de Ramas
 
-`tipo/iniciales/numero_issue-descripcion_corta`
+`tipo/iniciales/numero_issue-descripcion-corta-de-tarea`
 
 | Prefijo | Uso |
 |---|---|
@@ -206,9 +206,9 @@ Camera.get_real_time_image()
 
 ### Nomenclatura de Commits
 
-`tipo(#numero_issue): descripción en imperativo`
+`tipo(#numero_issue): descripción en Infinitivo`
 
-**Ejemplos:** `feat(#1): implementar filtro gaussiano para limpieza de ruido` · `fix(#2): liberar puntero de memoria en método detect`
+**Ejemplos:** `feat(#1): Implementar filtro gaussiano para limpieza de ruido` · `fix(#2): Liberar puntero de memoria en método detect`
 
 ---
 
