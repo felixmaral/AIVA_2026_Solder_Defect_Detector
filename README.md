@@ -6,13 +6,13 @@ Este proyecto implementa un sistema de visión artificial diseñado para dotar d
 
 ## Instalación
 
-Para configurar el entorno virtual e instalar todas las dependencias automáticamente en la Raspberry Pi, ejecuta:
+Para configurar el entorno virtual e instalar todas las dependencias automáticamente en el entorno de producción, ejecuta:
 
 ```bash
 source install.sh
 ```
 
-El script crea el entorno `.venv`, instala PyTorch (CPU), OpenCV y Ultralytics sin dependencias redundantes, y activa el entorno listo para usar.
+El script crea el entorno `.venv`, instala PyTorch, OpenCV y Ultralytics sin dependencias redundantes, y activa el entorno listo para usar.
 
 > Para entornos de desarrollo o CI, instala las dependencias de producción con:
 > ```bash
@@ -56,7 +56,7 @@ int main() {
 
 ### Integración en Python
 
-Si el orquestador del robot corre directamente en Python, puedes instanciar la clase `Application` directamente:
+Si el orquestador en el entorno de producción corre directamente en Python, puedes instanciar la clase `Application` directamente:
 
 ```python
 from src.application import Application
@@ -75,7 +75,7 @@ print(f"Reporte XML generado en: {resultado['xml_path']}")
 
 ## Modos de Simulación
 
-El sistema cuenta con dos modos de ejecución accesibles desde `src/main.py` mediante el parámetro `--mode`, diseñados para cubrir desde inspecciones unitarias hasta pruebas de rendimiento continuas.
+El sistema cuenta con dos modos de ejecución accesibles desde `src/main.py` mediante el parámetro `--mode`, diseñados para cubrir desde inspecciones unitarias hasta pruebas de rendimiento continuas de imágenes previamente guardados.
 
 ### Modo Single (`--mode single`)
 
@@ -93,13 +93,14 @@ Procesa cíclicamente las imágenes de `data/simulate/`, aplicando *data augment
 # Máxima velocidad — mide los FPS reales del motor YOLO
 python -m src.main --mode simulate
 
-# Cadencia Gaussiana — emula la velocidad real de la cadena (media 5s ± 2s)
+# Cadencia Gaussiana — emula la velocidad real de la cadena (media 5s ± 2s) (estadísticos mencionados por el cliente)
+# Estudiese la distribución temporal de tiempos entre imágen e imágen si es necesario
 python -m src.main --mode simulate --mean 5.0 --deviation 2.0
 
-# Simulación acotada en tiempo — para pruebas en CI o validaciones rápidas
+# Simulación acotada en tiempo (s) — para pruebas en CI o validaciones rápidas - Para prueba de esfuerzo 24h --sim_time 84600
 python -m src.main --mode simulate --sim_time 60
 
-# Con visualización en pantalla
+# Con visualización en pantalla si se ejecuta en un terminal con acceso a visualizador
 python -m src.main --mode simulate --visualize
 ```
 
@@ -111,8 +112,8 @@ Al terminar (por tiempo agotado o `Ctrl+C`), se genera automáticamente un infor
 
 La arquitectura separa estrictamente las responsabilidades de captura de hardware, representación de datos y lógica de inferencia.
 
-- **Captura de hardware:** Interfaces unificadas para interactuar con los sensores (Raspberry Pi 5 Camera).
-- **Representación de datos:** Estructuras optimizadas con evaluación perezosa para almacenar datos crudos y consolidar resultados.
+- **Captura de hardware:** Interfaces unificadas para interactuar con los sensores o imagenes guardadas en memoria.
+- **Representación de datos:** Estructuras optimizadas para almacenar datos crudos y consolidar resultados.
 - **Lógica de inferencia:** Aislamiento estricto del modelo predictivo para facilitar su actualización sin alterar el flujo principal.
 
 A continuación se muestra el diagrama UML:
@@ -135,7 +136,7 @@ Estructura de agregación que consolida todas las detecciones de una inspección
 #### 2. Clases de Interfaz y Procesamiento
 
 **`Camera`**
-Abstracción de la capa de hardware (Raspberry Pi Camera Module 3 / HQ). Proporciona `get_real_time_image()` para captura en vivo y `get_image_from_file()` para depuración desde disco. Ambos devuelven objetos `PCBImage`.
+Abstracción de la capa de hardware. Proporciona `get_real_time_image()` para captura en vivo y `get_image_from_file()` para depuración desde disco. Ambos devuelven objetos `PCBImage`.
 
 **`Detector`**
 Motor de inferencia YOLO. Ejecuta el modelo predictivo sobre un `PCBImage` y traduce las salidas del tensor en objetos `SolderDefect`. Método clave: `detect(image: PCBImage) → DetectionResult`.
