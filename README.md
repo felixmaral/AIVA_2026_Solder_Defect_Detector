@@ -27,7 +27,26 @@ El motor de visión está diseñado para integrarse sin fricción en el software
 
 ### Integración en C / C++ (Recomendado para Controladores)
 
-Para utilizar la API en C, se ha creado un *wrapper* nativo que encapsula toda la complejidad de Python. Solo necesitas incluir la cabecera y llamar a las funciones:
+Para utilizar la API en C, se ha creado un *wrapper* nativo que encapsula toda la complejidad de Python.
+
+#### 1. Compilación e Instalación del Wrapper C
+Antes de programar tu robot, debes compilar el wrapper como una librería dinámica. Asegúrate de tener instaladas las cabeceras de Python (ej. `sudo apt-get install python3-dev` en Ubuntu o `brew install python3` en macOS).
+
+1. Navega al directorio del código fuente en C:
+   ```bash
+   cd src/c_bindings/
+   ```
+2. Compila la librería compartida (`libsolder_defect.so` o `.dylib`):
+   ```bash
+   make all
+   ```
+3. *(Opcional pero recomendado)* Ejecuta las pruebas unitarias para validar la comunicación entre C y Python:
+   ```bash
+   make test
+   ```
+
+#### 2. Uso en el Controlador del Robot
+Una vez compilado, solo necesitas incluir la cabecera, enlazar tu programa con la librería (`-lsolder_defect`) y llamar a las funciones:
 
 ```c
 #include "src/c_bindings/solder_defect.h"
