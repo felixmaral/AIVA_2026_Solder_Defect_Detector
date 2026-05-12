@@ -30,7 +30,7 @@ class Detector:
             threshold are discarded by the model automatically.
     """
 
-    def __init__(self, weights_path: str = None, conf_threshold: float = 0.25):
+    def __init__(self, weights_path: str = None, conf_threshold: float = 0.25, iou_threshold: float = 0.1):
         """
         Loads the YOLO model weights into memory.
 
@@ -40,6 +40,9 @@ class Detector:
                 ``<project_root>/model_dev/weights/best.pt``.
             conf_threshold (float): Confidence threshold for filtering
                 predictions. Defaults to 0.25.
+            iou_threshold (float): Intersection Over Union (IoU) threshold for
+                Non-Maximum Suppression (NMS). Lower values mean stricter suppression
+                of overlapping boxes. Defaults to 0.1 to avoid duplicates.
 
         Raises:
             FileNotFoundError: If the weights file is not found at the
@@ -55,6 +58,7 @@ class Detector:
 
         self.model = YOLO(weights_path)
         self.conf_threshold = conf_threshold
+        self.iou_threshold = iou_threshold
 
     def detect(self, image: PCBImage) -> DetectionResult:
         """
@@ -95,9 +99,11 @@ class Detector:
         img_input = cv2.cvtColor(img_gray, cv2.COLOR_GRAY2BGR)
 
         # Step 3 — Run YOLO inference with suppressed console output
+        # Applying IoU threshold explicitly for Non-Maximum Suppression (NMS)
         predictions = self.model.predict(
             source=img_input,
             conf=self.conf_threshold,
+            iou=self.iou_threshold,
             verbose=False,
         )
 
