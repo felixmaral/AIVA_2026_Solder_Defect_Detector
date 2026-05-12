@@ -211,6 +211,10 @@ class Application:
             cv2.putText(display_img, label, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 
         try:
+            # Reducir a la mitad la resolución para que no ocupe toda la pantalla
+            h_img, w_img = display_img.shape[:2]
+            display_img = cv2.resize(display_img, (w_img // 2, h_img // 2))
+
             cv2.imshow("Solder Defect Detections", display_img)
             # Non-blocking update: 1 ms is sufficient to pump the UI event loop
             cv2.waitKey(1)
