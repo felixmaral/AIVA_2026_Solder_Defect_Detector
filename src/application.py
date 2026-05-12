@@ -212,7 +212,7 @@ class Application:
 
         try:
             # Reducir a la mitad la resolución para que no ocupe toda la pantalla
-            h_img, w_img = display_img.shape[:3]
+            h_img, w_img = display_img.shape[:2]
             display_img = cv2.resize(display_img, (w_img // 2, h_img // 2))
 
             cv2.imshow("Solder Defect Detections", display_img)
